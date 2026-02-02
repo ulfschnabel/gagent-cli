@@ -17,7 +17,7 @@ func main() {
 		Use:   "gagent-cli",
 		Short: "A CLI tool for AI agents to access Google APIs",
 		Long: `gagent-cli provides safe, scoped access to Google Mail, Calendar,
-Docs, Sheets, and Slides APIs for AI agents.
+Drive, Docs, Sheets, Slides, and Contacts APIs for AI agents.
 
 Read and write operations require separate authorization flows.
 A user can authorize read-only access without ever granting write access.`,
@@ -32,6 +32,7 @@ A user can authorize read-only access without ever granting write access.`,
 	rootCmd.AddCommand(gmailCmd())
 	rootCmd.AddCommand(calendarCmd())
 	rootCmd.AddCommand(contactsCmd())
+	rootCmd.AddCommand(driveCmd())
 	rootCmd.AddCommand(docsCmd())
 	rootCmd.AddCommand(sheetsCmd())
 	rootCmd.AddCommand(slidesCmd())
