@@ -167,7 +167,24 @@ func slidesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "slides",
 		Short: "Google Slides commands",
-		Long:  "Read and manage Google Slides presentations.",
+		Long: `Read and manage Google Slides presentations.
+
+VISUAL FEEDBACK LOOP FOR AI AGENTS:
+
+When building slides programmatically, you cannot see the visual output.
+Use the export-to-PDF pattern to get visual feedback:
+
+  1. Make changes:     slides add-text <id> --slide 1 --text "Hello"
+  2. Export to PDF:    slides export <id> --format pdf -o /tmp/check.pdf
+  3. Read the PDF to see rendered output (use your file reading capability)
+  4. Identify issues (overlaps, sizing, positioning)
+  5. Fix via batch-update: slides api batch-update <id> --requests-json '[...]'
+  6. Repeat until satisfied
+
+Use 'slides read <id> --slide N' to get element IDs for styling.
+Use 'slides api batch-update' for advanced formatting (fonts, colors, shapes).
+
+See AGENTS.md for detailed examples and common API request patterns.`,
 	}
 
 	// Task commands

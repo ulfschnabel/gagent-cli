@@ -174,7 +174,11 @@ func slidesExportCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "export <presentation-id>",
 		Short: "Export presentation",
-		Long:  "Exports presentation in specified format (pdf, pptx).",
+		Long: `Exports presentation in specified format (pdf, pptx).
+
+TIP FOR AI AGENTS: Use this command to create a visual feedback loop when
+building slides. Export to PDF, read the PDF to see the rendered output,
+then fix any issues (overlaps, positioning) via 'slides api batch-update'.`,
 		Args:  cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx := context.Background()
