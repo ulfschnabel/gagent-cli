@@ -276,6 +276,92 @@ gagent-cli slides update-text <presentation-id> \
   --replace "2026-02-03"
 ```
 
+### Visual Feedback Loop for Slides (Important!)
+
+**Problem**: When building slides programmatically, agents cannot see the visual output. You're essentially doing graphic design blind - guessing at positions, sizes, and styling without knowing if elements overlap, text wraps awkwardly, or colors clash.
+
+**Solution**: Use the export-to-PDF feedback loop:
+
+```bash
+# 1. Make changes to slides
+gagent-cli slides add-text <pres-id> --slide 1 --text "Title" --x 100 --y 100
+
+# 2. Export to PDF
+gagent-cli slides export <pres-id> --format pdf --output /tmp/slides.pdf
+
+# 3. Read the PDF (agents with vision can see the rendered slides)
+# Use your file reading capability to view /tmp/slides.pdf
+
+# 4. Analyze what needs fixing (overlaps, positioning, sizing)
+
+# 5. Apply fixes using batch-update API
+gagent-cli slides api batch-update <pres-id> --requests-json '[...]'
+
+# 6. Repeat until slides look good
+```
+
+**Workflow Example**:
+
+```bash
+# Create presentation
+PRES_ID=$(gagent-cli slides create --title "My Deck" | jq -r '.data.presentation_id')
+
+# Add content
+gagent-cli slides add-text "$PRES_ID" --slide 1 --text "Hello World" --x 100 --y 100
+
+# Export and check visually
+gagent-cli slides export "$PRES_ID" --format pdf --output /tmp/check.pdf
+
+# After viewing PDF, fix issues found (e.g., text too small, wrong position)
+gagent-cli slides api batch-update "$PRES_ID" --requests-json '[
+  {
+    "updateTextStyle": {
+      "objectId": "textbox_abc123",
+      "style": {"fontSize": {"magnitude": 36, "unit": "PT"}, "bold": true},
+      "textRange": {"type": "ALL"},
+      "fields": "fontSize,bold"
+    }
+  }
+]'
+
+# Export again to verify fix
+gagent-cli slides export "$PRES_ID" --format pdf --output /tmp/check_v2.pdf
+```
+
+**Tips for Slide Styling**:
+
+1. **Get element IDs first**: Use `slides read <pres-id> --slide N` to find textbox IDs
+2. **Use batch-update for styling**: The API commands support complex formatting
+3. **Common fixes**:
+   - Text overlapping: Adjust `translateY` in transform or reduce font size
+   - Text too narrow: Increase `scaleX` in transform
+   - Card behind text: Use `updatePageElementsZOrder` with `SEND_TO_BACK`
+4. **Positioning units**: Google Slides API uses EMU (English Metric Units). 1 inch = 914400 EMU
+
+**Example: Send shape to back**:
+```bash
+gagent-cli slides api batch-update "$PRES_ID" --requests-json '[
+  {"updatePageElementsZOrder": {"pageElementObjectIds": ["shape_id"], "operation": "SEND_TO_BACK"}}
+]'
+```
+
+**Example: Apply background color to slide**:
+```bash
+gagent-cli slides api batch-update "$PRES_ID" --requests-json '[
+  {
+    "updatePageProperties": {
+      "objectId": "slide_id",
+      "pageProperties": {
+        "pageBackgroundFill": {
+          "solidFill": {"color": {"rgbColor": {"red": 0.95, "green": 0.97, "blue": 1.0}}}
+        }
+      },
+      "fields": "pageBackgroundFill.solidFill.color"
+    }
+  }
+]'
+```
+
 ## Authentication Flow for Agents
 
 ### Initial Setup (One-Time)
@@ -471,6 +557,38 @@ gagent-cli docs append <doc-id> --text "\n\n## New Section\nContent here"
 gagent-cli docs update-section <doc-id> \
   --heading "Budget" \
   --content "Updated Q1 budget: $50k"
+```
+
+### Workflow: Build Styled Slide Deck
+
+```bash
+# 1. Create presentation
+gagent-cli slides create --title "Project Overview"
+# Save the presentation_id from response
+
+# 2. Add slides with content
+gagent-cli slides add-slide <pres-id> --layout blank
+gagent-cli slides add-text <pres-id> --slide 1 --text "Title" --x 100 --y 50 --width 600 --height 80
+gagent-cli slides add-text <pres-id> --slide 1 --text "Body content" --x 100 --y 150 --width 600 --height 300
+
+# 3. Get element IDs for styling
+gagent-cli slides read <pres-id> --slide 1
+# Note the "id" fields for each textbox
+
+# 4. Apply styling via batch-update
+gagent-cli slides api batch-update <pres-id> --requests-json '[
+  {"updateTextStyle": {"objectId": "textbox_id", "style": {"fontSize": {"magnitude": 32, "unit": "PT"}, "bold": true}, "textRange": {"type": "ALL"}, "fields": "fontSize,bold"}}
+]'
+
+# 5. Export to PDF and visually check
+gagent-cli slides export <pres-id> --format pdf --output /tmp/slides.pdf
+# Read the PDF to see rendered output
+
+# 6. Fix any issues found (overlaps, sizing, positioning)
+# Repeat steps 4-5 until satisfied
+
+# 7. Share final link with user
+# https://docs.google.com/presentation/d/<pres-id>
 ```
 
 ## Security Considerations
