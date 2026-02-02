@@ -1,5 +1,5 @@
 # Binaries
-gagent-cli
+/gagent-cli
 *.exe
 *.dll
 *.so
