@@ -65,15 +65,51 @@ type AuthResult struct {
 
 // PerformOAuthFlow runs the OAuth2 authorization flow with a local callback server.
 // It opens the browser for user authorization and waits for the callback.
-func PerformOAuthFlow(ctx context.Context, config *oauth2.Config) (*oauth2.Token, error) {
-	// Find an available port for the callback server
-	port, err := findAvailablePort()
-	if err != nil {
-		return nil, fmt.Errorf("failed to find available port: %w", err)
-	}
+// If redirectURL is provided, it will be used; otherwise a dynamic port is selected.
+func PerformOAuthFlow(ctx context.Context, config *oauth2.Config, redirectURL string) (*oauth2.Token, error) {
+	var port int
+	var host string
+	var path string
+	var err error
 
-	// Set the redirect URL with the found port
-	config.RedirectURL = fmt.Sprintf("http://127.0.0.1:%d/callback", port)
+	if redirectURL != "" {
+		// Use the configured redirect URL
+		config.RedirectURL = redirectURL
+
+		// Parse the URL to extract host, port, and path
+		parsed, err := url.Parse(redirectURL)
+		if err != nil {
+			return nil, fmt.Errorf("invalid redirect URL: %w", err)
+		}
+
+		host = parsed.Hostname()
+		if parsed.Port() != "" {
+			// Port was specified in URL
+			var portInt int
+			if _, err := fmt.Sscanf(parsed.Port(), "%d", &portInt); err != nil {
+				return nil, fmt.Errorf("invalid port in redirect URL: %w", err)
+			}
+			port = portInt
+		} else {
+			// No port specified, use default HTTP port
+			port = 80
+		}
+		path = parsed.Path
+		if path == "" {
+			path = "/"
+		}
+	} else {
+		// Find an available port for the callback server
+		port, err = findAvailablePort()
+		if err != nil {
+			return nil, fmt.Errorf("failed to find available port: %w", err)
+		}
+		host = "127.0.0.1"
+		path = "/callback"
+
+		// Set the redirect URL with the found port
+		config.RedirectURL = fmt.Sprintf("http://%s:%d%s", host, port, path)
+	}
 
 	// Generate state for CSRF protection
 	state, err := generateState()
@@ -86,10 +122,10 @@ func PerformOAuthFlow(ctx context.Context, config *oauth2.Config) (*oauth2.Token
 
 	// Create the callback server
 	server := &http.Server{
-		Addr: fmt.Sprintf("127.0.0.1:%d", port),
+		Addr: fmt.Sprintf("%s:%d", host, port),
 	}
 
-	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		// Verify state
 		if r.URL.Query().Get("state") != state {
 			resultCh <- AuthResult{Error: fmt.Errorf("invalid state parameter")}

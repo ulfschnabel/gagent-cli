@@ -19,6 +19,7 @@ const (
 type Config struct {
 	ClientID        string `json:"client_id"`
 	ClientSecret    string `json:"client_secret"`
+	RedirectURL     string `json:"redirect_url,omitempty"`
 	DefaultCalendar string `json:"default_calendar,omitempty"`
 	OutputFormat    string `json:"output_format,omitempty"`
 	TimeoutSeconds  int    `json:"timeout_seconds,omitempty"`
@@ -138,6 +139,8 @@ func Set(key, value string) error {
 	}
 
 	switch key {
+	case "redirect_url":
+		config.RedirectURL = value
 	case "default_calendar":
 		config.DefaultCalendar = value
 	case "output_format":
@@ -166,6 +169,8 @@ func Get(key string) (string, error) {
 		return config.ClientID, nil
 	case "client_secret":
 		return config.ClientSecret, nil
+	case "redirect_url":
+		return config.RedirectURL, nil
 	case "default_calendar":
 		return config.DefaultCalendar, nil
 	case "output_format":

@@ -188,7 +188,7 @@ where the browser callback cannot reach the CLI.`,
 			if manual {
 				token, err = auth.PerformOAuthFlowManual(ctx, oauthConfig)
 			} else {
-				token, err = auth.PerformOAuthFlow(ctx, oauthConfig)
+				token, err = auth.PerformOAuthFlow(ctx, oauthConfig, cfg.RedirectURL)
 			}
 
 			if err != nil {

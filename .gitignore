@@ -1,9 +1,13 @@
 # Binaries
 /gagent-cli
+/gagent-cli-*
 *.exe
 *.dll
 *.so
 *.dylib
+
+# GoReleaser
+dist/
 
 # Test coverage
 *.out

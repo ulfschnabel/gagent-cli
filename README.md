@@ -246,10 +246,14 @@ Configuration is stored in `~/.config/gagent-cli/`:
 ### Config Options
 
 ```bash
+gagent-cli config set redirect_url "http://localhost:12345/oauth2callback"
 gagent-cli config set default_calendar "work@group.calendar.google.com"
 gagent-cli config set audit_log true
+gagent-cli config get redirect_url
 gagent-cli config get default_calendar
 ```
+
+**Note on redirect_url**: If you encounter OAuth redirect_uri_mismatch errors, configure a custom redirect URL that matches what's registered in your Google Cloud Console. The redirect URL must include the full host, port, and path (e.g., `http://localhost:12345/oauth2callback`). If not set, the CLI will use a dynamic port with `http://127.0.0.1:<random-port>/callback`.
 
 ## Safety Features
 
@@ -267,8 +271,35 @@ go test ./...
 go test -coverprofile=coverage.out ./...
 go tool cover -html=coverage.out
 
-# Build
+# Build locally
 go build -o gagent-cli ./cmd/gagent-cli
+```
+
+## Releases
+
+Releases are managed with [GoReleaser](https://goreleaser.com/). To create a new release:
+
+```bash
+# Install GoReleaser (if not already installed)
+brew install goreleaser
+
+# Tag the release
+git tag -a v0.1.0 -m "Release v0.1.0"
+git push origin v0.1.0
+
+# Create the release (requires GITHUB_TOKEN env var)
+goreleaser release --clean
+```
+
+GoReleaser will automatically:
+- Build binaries for Linux, macOS, and Windows (amd64 and arm64)
+- Create archives with proper naming (e.g., `gagent-cli_v0.1.0_Darwin_arm64.tar.gz`)
+- Upload to GitHub Releases
+- Generate checksums
+
+For testing the release process locally without publishing:
+```bash
+goreleaser release --snapshot --clean
 ```
 
 ## License
