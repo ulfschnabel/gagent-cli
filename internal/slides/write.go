@@ -8,6 +8,10 @@ import (
 	"google.golang.org/api/slides/v1"
 )
 
+// Note on units: When writing, we specify Unit="PT" to use points for coordinates.
+// The API converts these to EMU internally (1 point = 12,700 EMUs).
+// When reading, coordinates are returned in EMUs and converted back to points in read.go.
+
 // Create creates a new presentation.
 func (s *Service) Create(title string) (*CreateResult, error) {
 	pres := &slides.Presentation{
@@ -57,11 +61,11 @@ func (s *Service) DeleteSlide(presentationID string, slideIndex int) (*UpdateRes
 	// Get the presentation to find the slide ID
 	pres, err := s.Get(presentationID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get presentation: %w", err)
 	}
 
-	if slideIndex < 1 || slideIndex > len(pres.Slides) {
-		return nil, fmt.Errorf("slide index out of range: %d (presentation has %d slides)", slideIndex, len(pres.Slides))
+	if err := validateSlideIndex(slideIndex, len(pres.Slides)); err != nil {
+		return nil, err
 	}
 
 	slideID := pres.Slides[slideIndex-1].ObjectId
@@ -88,14 +92,19 @@ func (s *Service) DeleteSlide(presentationID string, slideIndex int) (*UpdateRes
 
 // UpdateText replaces text on a specific slide.
 func (s *Service) UpdateText(presentationID string, slideIndex int, find, replace string) (*UpdateResult, error) {
+	// Validate inputs
+	if err := validateText(find); err != nil {
+		return nil, fmt.Errorf("invalid find text: %w", err)
+	}
+
 	// Get the presentation to find the slide ID
 	pres, err := s.Get(presentationID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get presentation: %w", err)
 	}
 
-	if slideIndex < 1 || slideIndex > len(pres.Slides) {
-		return nil, fmt.Errorf("slide index out of range: %d (presentation has %d slides)", slideIndex, len(pres.Slides))
+	if err := validateSlideIndex(slideIndex, len(pres.Slides)); err != nil {
+		return nil, err
 	}
 
 	slideID := pres.Slides[slideIndex-1].ObjectId
@@ -127,14 +136,25 @@ func (s *Service) UpdateText(presentationID string, slideIndex int, find, replac
 
 // AddText adds a text box to a slide.
 func (s *Service) AddText(presentationID string, slideIndex int, text string, x, y, width, height float64) (*UpdateResult, error) {
+	// Validate inputs
+	if err := validateText(text); err != nil {
+		return nil, fmt.Errorf("invalid text: %w", err)
+	}
+	if err := validateDimensions(width, height); err != nil {
+		return nil, fmt.Errorf("invalid dimensions: %w", err)
+	}
+	if err := validateCoordinates(x, y); err != nil {
+		return nil, fmt.Errorf("invalid coordinates: %w", err)
+	}
+
 	// Get the presentation to find the slide ID
 	pres, err := s.Get(presentationID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get presentation: %w", err)
 	}
 
-	if slideIndex < 1 || slideIndex > len(pres.Slides) {
-		return nil, fmt.Errorf("slide index out of range: %d (presentation has %d slides)", slideIndex, len(pres.Slides))
+	if err := validateSlideIndex(slideIndex, len(pres.Slides)); err != nil {
+		return nil, err
 	}
 
 	slideID := pres.Slides[slideIndex-1].ObjectId
@@ -183,14 +203,25 @@ func (s *Service) AddText(presentationID string, slideIndex int, text string, x,
 
 // AddImage adds an image to a slide.
 func (s *Service) AddImage(presentationID string, slideIndex int, imageURL string, x, y, width, height float64) (*UpdateResult, error) {
+	// Validate inputs
+	if err := validateURL(imageURL); err != nil {
+		return nil, fmt.Errorf("invalid image URL: %w", err)
+	}
+	if err := validateDimensions(width, height); err != nil {
+		return nil, fmt.Errorf("invalid dimensions: %w", err)
+	}
+	if err := validateCoordinates(x, y); err != nil {
+		return nil, fmt.Errorf("invalid coordinates: %w", err)
+	}
+
 	// Get the presentation to find the slide ID
 	pres, err := s.Get(presentationID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get presentation: %w", err)
 	}
 
-	if slideIndex < 1 || slideIndex > len(pres.Slides) {
-		return nil, fmt.Errorf("slide index out of range: %d (presentation has %d slides)", slideIndex, len(pres.Slides))
+	if err := validateSlideIndex(slideIndex, len(pres.Slides)); err != nil {
+		return nil, err
 	}
 
 	slideID := pres.Slides[slideIndex-1].ObjectId

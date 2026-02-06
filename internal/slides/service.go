@@ -59,14 +59,16 @@ type SlideContent struct {
 }
 
 // ElementInfo represents information about a page element.
+// All coordinates and dimensions are in points (PT), converted from the API's
+// internal EMU (English Metric Units) representation.
 type ElementInfo struct {
 	ID       string  `json:"id"`
 	Type     string  `json:"type"`
 	Text     string  `json:"text,omitempty"`
-	X        float64 `json:"x,omitempty"`
-	Y        float64 `json:"y,omitempty"`
-	Width    float64 `json:"width,omitempty"`
-	Height   float64 `json:"height,omitempty"`
+	X        float64 `json:"x_pt,omitempty"`      // X coordinate in points
+	Y        float64 `json:"y_pt,omitempty"`      // Y coordinate in points
+	Width    float64 `json:"width_pt,omitempty"`  // Width in points
+	Height   float64 `json:"height_pt,omitempty"` // Height in points
 }
 
 // CreateResult represents the result of creating a presentation.

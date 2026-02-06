@@ -8,6 +8,13 @@ import (
 	"google.golang.org/api/slides/v1"
 )
 
+// Conversion constants for Google Slides API units.
+// The API internally uses EMU (English Metric Units) and returns all
+// coordinates and dimensions in EMUs, even when created with PT units.
+const (
+	EMUPerPoint = 12700.0 // 1 point = 12,700 EMUs
+)
+
 // ListOptions contains options for listing presentations.
 type ListOptions struct {
 	Query      string
@@ -233,16 +240,19 @@ func parsePageElement(element *slides.PageElement) *ElementInfo {
 	}
 
 	// Get position and size
+	// Note: The Google Slides API always returns coordinates in EMUs,
+	// regardless of what unit was used to create them. We convert to points
+	// for consistency with the write operations.
 	if element.Transform != nil {
-		info.X = element.Transform.TranslateX
-		info.Y = element.Transform.TranslateY
+		info.X = element.Transform.TranslateX / EMUPerPoint
+		info.Y = element.Transform.TranslateY / EMUPerPoint
 	}
 	if element.Size != nil {
 		if element.Size.Width != nil {
-			info.Width = element.Size.Width.Magnitude
+			info.Width = element.Size.Width.Magnitude / EMUPerPoint
 		}
 		if element.Size.Height != nil {
-			info.Height = element.Size.Height.Magnitude
+			info.Height = element.Size.Height.Magnitude / EMUPerPoint
 		}
 	}
 
