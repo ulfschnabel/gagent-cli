@@ -151,9 +151,88 @@ gagent-cli docs append <doc-id> --text TEXT
 gagent-cli docs replace-text <doc-id> --find TEXT --replace TEXT
 gagent-cli docs update-section <doc-id> --heading HEADING --content TEXT
 
+# Rich formatting commands
+gagent-cli docs append-formatted <doc-id> --text TEXT [--bold] [--italic] [--underline] [--color COLOR] [--style STYLE]
+gagent-cli docs insert-list <doc-id> --type TYPE --items ITEM1,ITEM2 [--indent N]
+gagent-cli docs format-paragraph <doc-id> --start INDEX --end INDEX [--align ALIGN] [--line-spacing N]
+gagent-cli docs insert-table <doc-id> --rows N --cols N [--headers H1,H2] [--csv DATA]
+gagent-cli docs insert-pagebreak <doc-id>
+gagent-cli docs insert-hr <doc-id>
+gagent-cli docs insert-toc <doc-id>
+gagent-cli docs format-template <doc-id> --template-file FILE.json
+
 # API commands
 gagent-cli docs api get <doc-id>
 gagent-cli docs api batch-update <doc-id> --requests-json JSON
+```
+
+#### Rich Formatting Examples
+
+**Formatted text with bold and color:**
+```bash
+gagent-cli docs append-formatted <doc-id> \
+  --text "TOTAL AMOUNT: €3,523.59" \
+  --bold --color "#ff0000" --font-size 14
+```
+
+**Insert a heading:**
+```bash
+gagent-cli docs append-formatted <doc-id> \
+  --text "Financial Summary" \
+  --style heading1
+```
+
+**Create a bulleted list:**
+```bash
+gagent-cli docs insert-list <doc-id> \
+  --type bullet \
+  --items "First item,Second item,Third item"
+```
+
+**Insert a table with headers:**
+```bash
+gagent-cli docs insert-table <doc-id> \
+  --rows 3 --cols 3 \
+  --headers "Item,Amount,Total"
+```
+
+**Format from JSON template:**
+```json
+{
+  "title": {
+    "text": "Tax Document 2024",
+    "style": {
+      "namedStyle": "title"
+    }
+  },
+  "sections": [
+    {
+      "heading": "Income Summary",
+      "style": "heading1",
+      "content": [
+        {
+          "type": "text",
+          "text": "Total income for the year:",
+          "style": {"bold": true}
+        },
+        {
+          "type": "table",
+          "rows": 3,
+          "columns": 2,
+          "headers": ["Category", "Amount"],
+          "table_data": [
+            ["Salary", "€50,000"],
+            ["Investments", "€5,000"]
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+```bash
+gagent-cli docs format-template <doc-id> --template-file tax-doc.json
 ```
 
 ### Sheets

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/ulfhaga/gagent-cli/internal/auth"
@@ -497,4 +498,355 @@ func docsAPICreateCmd() *cobra.Command {
 	cmd.MarkFlagRequired("title")
 
 	return cmd
+}
+
+// docsInsertListCmd inserts a list into a document.
+func docsInsertListCmd() *cobra.Command {
+	var listType string
+	var items []string
+	var itemsStr string
+	var indent int
+
+	cmd := &cobra.Command{
+		Use:   "insert-list <doc-id>",
+		Short: "Insert a list",
+		Long:  "Inserts a bullet, numbered, or other type of list.",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			ctx := context.Background()
+			svc, err := docsWriteService(ctx)
+			if err != nil {
+				output.Failure(output.ErrScopeInsufficient, err.Error(), nil)
+				return
+			}
+
+			// Parse items from comma-separated string if provided
+			if itemsStr != "" {
+				items = parseListItems(itemsStr)
+			}
+
+			result, err := svc.InsertList(args[0], docs.InsertListOptions{
+				Type:   listType,
+				Items:  items,
+				Indent: indent,
+			})
+			if err != nil {
+				output.APIError(err)
+				return
+			}
+
+			output.Success(map[string]interface{}{
+				"document_id": result.DocumentID,
+				"list_type":   listType,
+				"item_count":  len(items),
+			}, "write")
+		},
+	}
+
+	cmd.Flags().StringVar(&listType, "type", "bullet", "List type: bullet, numbered, lettered, roman, checklist")
+	cmd.Flags().StringSliceVar(&items, "items", []string{}, "List items (can be repeated)")
+	cmd.Flags().StringVar(&itemsStr, "items-string", "", "List items as comma-separated string")
+	cmd.Flags().IntVar(&indent, "indent", 0, "Indent level (0-9)")
+
+	return cmd
+}
+
+// docsAppendFormattedCmd appends formatted text to a document.
+func docsAppendFormattedCmd() *cobra.Command {
+	var text string
+	var bold, italic, underline, strikethrough bool
+	var fontSize int
+	var fontFamily, color, bgColor, namedStyle string
+
+	cmd := &cobra.Command{
+		Use:   "append-formatted <doc-id>",
+		Short: "Append formatted text",
+		Long:  "Appends text with formatting (bold, italic, colors, etc.).",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			ctx := context.Background()
+			svc, err := docsWriteService(ctx)
+			if err != nil {
+				output.Failure(output.ErrScopeInsufficient, err.Error(), nil)
+				return
+			}
+
+			result, err := svc.AppendFormatted(args[0], text, docs.TextStyleOptions{
+				Bold:          bold,
+				Italic:        italic,
+				Underline:     underline,
+				Strikethrough: strikethrough,
+				FontSize:      fontSize,
+				FontFamily:    fontFamily,
+				Color:         color,
+				BgColor:       bgColor,
+				NamedStyle:    namedStyle,
+			})
+			if err != nil {
+				output.APIError(err)
+				return
+			}
+
+			output.Success(result, "write")
+		},
+	}
+
+	cmd.Flags().StringVar(&text, "text", "", "Text to append (required)")
+	cmd.Flags().BoolVar(&bold, "bold", false, "Bold text")
+	cmd.Flags().BoolVar(&italic, "italic", false, "Italic text")
+	cmd.Flags().BoolVar(&underline, "underline", false, "Underline text")
+	cmd.Flags().BoolVar(&strikethrough, "strikethrough", false, "Strikethrough text")
+	cmd.Flags().IntVar(&fontSize, "font-size", 0, "Font size (8-72)")
+	cmd.Flags().StringVar(&fontFamily, "font-family", "", "Font family (e.g., Arial, Times New Roman)")
+	cmd.Flags().StringVar(&color, "color", "", "Text color (#rrggbb)")
+	cmd.Flags().StringVar(&bgColor, "bg-color", "", "Background color (#rrggbb)")
+	cmd.Flags().StringVar(&namedStyle, "style", "", "Named style: heading1, heading2, heading3, heading4, title, subtitle, normal")
+
+	cmd.MarkFlagRequired("text")
+
+	return cmd
+}
+
+// docsFormatParagraphCmd formats a paragraph.
+func docsFormatParagraphCmd() *cobra.Command {
+	var startIndex, endIndex int64
+	var alignment string
+	var indentStart, indentEnd, indentFirst float64
+	var lineSpacing, spacingBefore, spacingAfter float64
+
+	cmd := &cobra.Command{
+		Use:   "format-paragraph <doc-id>",
+		Short: "Format a paragraph",
+		Long:  "Applies paragraph formatting (alignment, indentation, spacing).",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			ctx := context.Background()
+			svc, err := docsWriteService(ctx)
+			if err != nil {
+				output.Failure(output.ErrScopeInsufficient, err.Error(), nil)
+				return
+			}
+
+			result, err := svc.FormatParagraph(args[0], startIndex, endIndex, docs.ParagraphStyleOptions{
+				Alignment:     alignment,
+				IndentStart:   indentStart,
+				IndentEnd:     indentEnd,
+				IndentFirst:   indentFirst,
+				LineSpacing:   lineSpacing,
+				SpacingBefore: spacingBefore,
+				SpacingAfter:  spacingAfter,
+			})
+			if err != nil {
+				output.APIError(err)
+				return
+			}
+
+			output.Success(result, "write")
+		},
+	}
+
+	cmd.Flags().Int64Var(&startIndex, "start", 0, "Start index (required)")
+	cmd.Flags().Int64Var(&endIndex, "end", 0, "End index (required)")
+	cmd.Flags().StringVar(&alignment, "align", "", "Alignment: left, center, right, justify")
+	cmd.Flags().Float64Var(&indentStart, "indent-start", 0, "Left indent in points")
+	cmd.Flags().Float64Var(&indentEnd, "indent-end", 0, "Right indent in points")
+	cmd.Flags().Float64Var(&indentFirst, "indent-first", 0, "First line indent in points")
+	cmd.Flags().Float64Var(&lineSpacing, "line-spacing", 0, "Line spacing (e.g., 1.5)")
+	cmd.Flags().Float64Var(&spacingBefore, "spacing-before", 0, "Space before paragraph in points")
+	cmd.Flags().Float64Var(&spacingAfter, "spacing-after", 0, "Space after paragraph in points")
+
+	cmd.MarkFlagRequired("start")
+	cmd.MarkFlagRequired("end")
+
+	return cmd
+}
+
+// docsInsertTableCmd inserts a table.
+func docsInsertTableCmd() *cobra.Command {
+	var rows, columns int
+	var headers []string
+	var csvData string
+	var hasHeaders bool
+
+	cmd := &cobra.Command{
+		Use:   "insert-table <doc-id>",
+		Short: "Insert a table",
+		Long:  "Inserts a table with optional CSV data.",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			ctx := context.Background()
+			svc, err := docsWriteService(ctx)
+			if err != nil {
+				output.Failure(output.ErrScopeInsufficient, err.Error(), nil)
+				return
+			}
+
+			var result *docs.UpdateResult
+
+			// If CSV data provided, use that
+			if csvData != "" {
+				result, err = svc.InsertTableFromCSV(args[0], csvData, hasHeaders)
+			} else {
+				// Otherwise create empty table or with headers
+				result, err = svc.InsertTable(args[0], docs.TableOptions{
+					Rows:    rows,
+					Columns: columns,
+					Headers: headers,
+				})
+			}
+
+			if err != nil {
+				output.APIError(err)
+				return
+			}
+
+			output.Success(map[string]interface{}{
+				"document_id": result.DocumentID,
+				"rows":        rows,
+				"columns":     columns,
+			}, "write")
+		},
+	}
+
+	cmd.Flags().IntVar(&rows, "rows", 3, "Number of rows")
+	cmd.Flags().IntVar(&columns, "cols", 3, "Number of columns")
+	cmd.Flags().StringSliceVar(&headers, "headers", []string{}, "Header row (optional)")
+	cmd.Flags().StringVar(&csvData, "csv", "", "CSV data")
+	cmd.Flags().BoolVar(&hasHeaders, "has-headers", false, "CSV has header row")
+
+	return cmd
+}
+
+// docsInsertPageBreakCmd inserts a page break.
+func docsInsertPageBreakCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "insert-pagebreak <doc-id>",
+		Short: "Insert a page break",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			ctx := context.Background()
+			svc, err := docsWriteService(ctx)
+			if err != nil {
+				output.Failure(output.ErrScopeInsufficient, err.Error(), nil)
+				return
+			}
+
+			result, err := svc.InsertPageBreak(args[0])
+			if err != nil {
+				output.APIError(err)
+				return
+			}
+
+			output.Success(result, "write")
+		},
+	}
+}
+
+// docsInsertHRCmd inserts a horizontal rule.
+func docsInsertHRCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "insert-hr <doc-id>",
+		Short: "Insert a horizontal rule",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			ctx := context.Background()
+			svc, err := docsWriteService(ctx)
+			if err != nil {
+				output.Failure(output.ErrScopeInsufficient, err.Error(), nil)
+				return
+			}
+
+			result, err := svc.InsertHorizontalRule(args[0])
+			if err != nil {
+				output.APIError(err)
+				return
+			}
+
+			output.Success(result, "write")
+		},
+	}
+}
+
+// docsInsertTOCCmd inserts a table of contents.
+func docsInsertTOCCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "insert-toc <doc-id>",
+		Short: "Insert a table of contents placeholder",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			ctx := context.Background()
+			svc, err := docsWriteService(ctx)
+			if err != nil {
+				output.Failure(output.ErrScopeInsufficient, err.Error(), nil)
+				return
+			}
+
+			result, err := svc.InsertTOC(args[0])
+			if err != nil {
+				output.APIError(err)
+				return
+			}
+
+			output.Success(result, "write")
+		},
+	}
+}
+
+// docsFormatFromTemplateCmd applies a template to a document.
+func docsFormatFromTemplateCmd() *cobra.Command {
+	var templateJSON string
+	var templateFile string
+
+	cmd := &cobra.Command{
+		Use:   "format-template <doc-id>",
+		Short: "Apply formatting template",
+		Long:  "Applies a JSON template with multiple formatting operations.",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			ctx := context.Background()
+			svc, err := docsWriteService(ctx)
+			if err != nil {
+				output.Failure(output.ErrScopeInsufficient, err.Error(), nil)
+				return
+			}
+
+			// Read template from file if specified
+			if templateFile != "" {
+				data, err := os.ReadFile(templateFile)
+				if err != nil {
+					output.FailureFromError(output.ErrInvalidInput, err)
+					return
+				}
+				templateJSON = string(data)
+			}
+
+			result, err := svc.FormatFromTemplate(args[0], templateJSON)
+			if err != nil {
+				output.APIError(err)
+				return
+			}
+
+			output.Success(map[string]interface{}{
+				"document_id": result.DocumentID,
+				"applied":     true,
+			}, "write")
+		},
+	}
+
+	cmd.Flags().StringVar(&templateJSON, "template", "", "JSON template string")
+	cmd.Flags().StringVar(&templateFile, "template-file", "", "Path to JSON template file")
+
+	return cmd
+}
+
+// parseListItems parses comma-separated list items.
+func parseListItems(itemsStr string) []string {
+	var items []string
+	for _, item := range strings.Split(itemsStr, ",") {
+		trimmed := strings.TrimSpace(item)
+		if trimmed != "" {
+			items = append(items, trimmed)
+		}
+	}
+	return items
 }

@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	version = "0.2.0"
+	version = "0.3.0"
 )
 
 func main() {
@@ -115,7 +115,7 @@ func docsCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "docs",
 		Short: "Google Docs commands",
-		Long:  "Read and manage Google Docs documents.",
+		Long:  "Read and manage Google Docs documents with rich formatting support.",
 	}
 
 	// Task commands
@@ -128,6 +128,16 @@ func docsCmd() *cobra.Command {
 	cmd.AddCommand(docsPrependCmd())
 	cmd.AddCommand(docsReplaceTextCmd())
 	cmd.AddCommand(docsUpdateSectionCmd())
+
+	// Rich formatting commands
+	cmd.AddCommand(docsAppendFormattedCmd())
+	cmd.AddCommand(docsInsertListCmd())
+	cmd.AddCommand(docsFormatParagraphCmd())
+	cmd.AddCommand(docsInsertTableCmd())
+	cmd.AddCommand(docsInsertPageBreakCmd())
+	cmd.AddCommand(docsInsertHRCmd())
+	cmd.AddCommand(docsInsertTOCCmd())
+	cmd.AddCommand(docsFormatFromTemplateCmd())
 
 	// API commands
 	cmd.AddCommand(docsAPICmd())
