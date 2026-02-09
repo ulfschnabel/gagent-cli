@@ -261,6 +261,29 @@ gagent-cli config get default_calendar
 - **Dry Run Mode**: Use `--dry-run` flag for write operations to preview changes
 - **File Permissions**: All config and token files use 0600 permissions
 
+## Agent Skill
+
+An agent skill is available for AI assistants like Claude to use gagent-cli effectively. The skill includes:
+
+- Authentication workflow guidance
+- Command selection (task vs API)
+- Domain-specific references (Gmail, Calendar, Contacts, Docs, Sheets, Slides)
+- Best practices and common workflows
+- Visual feedback loop for Slides
+
+**Install the skill:**
+```bash
+# Install the packaged skill
+cp gagent-cli.skill ~/.claude/skills/
+```
+
+**Build from source:**
+```bash
+cd skill && ./package.sh
+```
+
+See **[skill/](skill/)** directory for source files.
+
 ## Development
 
 ```bash
