@@ -45,12 +45,10 @@ archives:
       - README.md
       - AGENTS.md
 
-notarize:
-  macos:
-    - enabled: true
-      ids:
-        - gagent-cli
-      keychain_profile: "gagent-cli-notarize"
+# Notarization commented out - will add in future release with correct syntax
+# notarize:
+#   macos:
+#     - profile_name: "gagent-cli-notarize"
 
 checksum:
   name_template: 'checksums.txt'
