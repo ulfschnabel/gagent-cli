@@ -22,6 +22,11 @@ builds:
     ignore:
       - goos: windows
         goarch: arm64
+    # Sign macOS binaries after build
+    hooks:
+      post:
+        - cmd: sh -c 'if [ "{{ .Os }}" = "darwin" ]; then codesign --sign "Developer ID Application" --options runtime --timestamp --verbose "{{ .Path }}"; fi'
+          output: true
 
 archives:
   - id: gagent-cli
@@ -39,6 +44,13 @@ archives:
     files:
       - README.md
       - AGENTS.md
+
+notarize:
+  macos:
+    - enabled: true
+      ids:
+        - gagent-cli
+      keychain_profile: "gagent-cli-notarize"
 
 checksum:
   name_template: 'checksums.txt'
