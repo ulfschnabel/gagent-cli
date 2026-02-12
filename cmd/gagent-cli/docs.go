@@ -839,6 +839,145 @@ func docsFormatFromTemplateCmd() *cobra.Command {
 	return cmd
 }
 
+// docsFromMarkdownCmd creates or appends to a document from markdown.
+// This is the PREFERRED way to build well-formatted Google Docs.
+func docsFromMarkdownCmd() *cobra.Command {
+	var filePath string
+	var text string
+	var title string
+	var replace bool
+	var preview bool
+
+	cmd := &cobra.Command{
+		Use:   "from-markdown [doc-id]",
+		Short: "Create or update a Google Doc from markdown (PREFERRED for building docs)",
+		Long: `Converts markdown to a clean, well-formatted Google Doc in a single atomic operation.
+This is the best way to build documents — write your content as markdown and
+let this command handle all the Google Docs formatting (headings, bold, italic,
+lists, code blocks, links, horizontal rules).
+
+Creates a new document when --title is provided (doc-id is optional).
+Appends to an existing document when doc-id is provided without --title.
+Use --replace to clear the document and rewrite it (for iterating on content).
+
+Supports: headings (h1-h6), bold, italic, bullet lists, numbered lists,
+code blocks (monospace), inline code, links, and horizontal rules.`,
+		Args: cobra.MaximumNArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			var markdown string
+
+			switch {
+			case text != "":
+				markdown = text
+			case filePath != "":
+				data, err := os.ReadFile(filePath)
+				if err != nil {
+					output.FailureFromError(output.ErrInvalidInput, err)
+					return
+				}
+				markdown = string(data)
+			default:
+				output.Failure(output.ErrInvalidInput, "provide markdown via --text or --file", nil)
+				return
+			}
+
+			if preview {
+				mc := docs.NewMarkdownConverter(1)
+				reqs, err := mc.Convert(markdown)
+				if err != nil {
+					output.APIError(err)
+					return
+				}
+				output.Success(map[string]interface{}{
+					"preview":       true,
+					"request_count": len(reqs),
+				}, "read")
+				return
+			}
+
+			ctx := context.Background()
+			svc, err := docsWriteService(ctx)
+			if err != nil {
+				output.Failure(output.ErrScopeInsufficient, err.Error(), nil)
+				return
+			}
+
+			// Determine document ID: create new or use existing
+			var documentID string
+			if title != "" {
+				// Create a new document
+				createResult, err := svc.Create(title)
+				if err != nil {
+					output.APIError(err)
+					return
+				}
+				documentID = createResult.DocumentID
+			} else if len(args) > 0 {
+				documentID = args[0]
+			} else {
+				output.Failure(output.ErrInvalidInput, "provide a doc-id or use --title to create a new document", nil)
+				return
+			}
+
+			var result *docs.UpdateResult
+			if replace {
+				result, err = svc.ReplaceFromMarkdown(documentID, markdown)
+			} else {
+				result, err = svc.FromMarkdown(documentID, markdown)
+			}
+			if err != nil {
+				output.APIError(err)
+				return
+			}
+
+			resp := map[string]interface{}{
+				"document_id": result.DocumentID,
+				"applied":     true,
+			}
+			if title != "" {
+				resp["created"] = true
+				resp["title"] = title
+			}
+
+			output.Success(resp, "write")
+		},
+	}
+
+	cmd.Flags().StringVar(&text, "text", "", "Markdown content to convert")
+	cmd.Flags().StringVar(&filePath, "file", "", "Path to a markdown file")
+	cmd.Flags().StringVar(&title, "title", "", "Create a new document with this title")
+	cmd.Flags().BoolVar(&replace, "replace", false, "Clear existing content and replace with markdown")
+	cmd.Flags().BoolVar(&preview, "preview", false, "Preview without applying")
+
+	return cmd
+}
+
+// docsStructureCmd returns a detailed structural analysis of a document.
+func docsStructureCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "structure <doc-id>",
+		Short: "Analyze document structure",
+		Long:  "Returns structural analysis: headings, tables, lists, word count.",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			ctx := context.Background()
+			svc, err := docsReadService(ctx)
+			if err != nil {
+				output.FailureFromError(output.ErrAuthRequired, err)
+				return
+			}
+
+			structure, err := svc.Structure(args[0])
+			if err != nil {
+				output.NotFoundError("Document", args[0])
+				return
+			}
+
+			output.Success(structure, "read")
+		},
+	}
+}
+
 // parseListItems parses comma-separated list items.
 func parseListItems(itemsStr string) []string {
 	var items []string

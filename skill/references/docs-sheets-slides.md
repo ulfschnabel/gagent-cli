@@ -2,6 +2,49 @@
 
 ## Google Docs
 
+### Building Documents from Markdown (PREFERRED)
+
+**Use `docs from-markdown` to build well-formatted Google Docs.** Write your content as
+markdown and this command converts it to native Google Docs formatting (headings, bold,
+italic, lists, code blocks, links) in a single atomic API call. Do NOT build documents
+piece by piece with multiple append/insert calls.
+
+```bash
+# Create a new document from markdown (PREFERRED)
+gagent-cli docs from-markdown --title "Project Plan" --text "# Project Plan
+
+## Goals
+- Launch by Q2
+- **500** active users
+
+## Timeline
+1. Design phase: *2 weeks*
+2. Implementation: 4 weeks
+3. Testing: 1 week"
+
+# Append markdown to an existing document
+gagent-cli docs from-markdown <doc-id> --text "## New Section
+
+More **formatted** content here."
+
+# Replace entire document content (for iterating on drafts)
+gagent-cli docs from-markdown <doc-id> --replace --text "# Revised version
+
+Completely rewritten with **new content**."
+
+# From a markdown file
+gagent-cli docs from-markdown <doc-id> --file report.md
+
+# Preview without applying
+gagent-cli docs from-markdown <doc-id> --text "# Test" --preview
+```
+
+**Flags:** `--title` creates new doc, `--replace` rewrites existing doc, neither appends.
+
+**Supported markdown:** Headings (h1-h6), **bold**, *italic*, bullet lists,
+numbered lists, `inline code`, fenced code blocks (monospace), [links](url),
+and horizontal rules (---).
+
 ### Reading
 
 ```bash
@@ -11,6 +54,9 @@ gagent-cli docs read <doc-id>
 # Get document outline/structure
 gagent-cli docs outline <doc-id>
 
+# Analyze document structure (headings, tables, lists, word count)
+gagent-cli docs structure <doc-id>
+
 # Export to different formats
 gagent-cli docs export <doc-id> --format txt|html|pdf
 
@@ -18,14 +64,11 @@ gagent-cli docs export <doc-id> --format txt|html|pdf
 gagent-cli docs list --limit 10 [--query "search term"]
 ```
 
-### Writing
+### Other Write Operations
 
 ```bash
-# Create new document
-gagent-cli docs create --title "Meeting Notes" [--content "Initial content"]
-
-# Append to document
-gagent-cli docs append <doc-id> --text "\n\nNew section content"
+# Append plain text (use from-markdown instead for formatted content)
+gagent-cli docs append <doc-id> --text "plain text"
 
 # Find and replace
 gagent-cli docs replace-text <doc-id> --find "old text" --replace "new text"

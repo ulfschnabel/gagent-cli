@@ -3,9 +3,11 @@ package docs
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"strings"
 
 	"google.golang.org/api/docs/v1"
+	"google.golang.org/api/drive/v3"
 )
 
 // ListOptions contains options for listing documents.
@@ -37,7 +39,9 @@ func (s *Service) List(opts ListOptions) ([]DocumentSummary, string, error) {
 		call = call.PageToken(opts.PageToken)
 	}
 
-	resp, err := call.Do()
+	resp, err := doRetry(func() (*drive.FileList, error) {
+		return call.Do()
+	})
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to list documents: %w", err)
 	}
@@ -58,7 +62,9 @@ func (s *Service) List(opts ListOptions) ([]DocumentSummary, string, error) {
 
 // Get returns the full document structure.
 func (s *Service) Get(documentID string) (*docs.Document, error) {
-	doc, err := s.docs.Documents.Get(documentID).Do()
+	doc, err := doRetry(func() (*docs.Document, error) {
+		return s.docs.Documents.Get(documentID).Do()
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get document: %w", err)
 	}
@@ -116,7 +122,9 @@ func (s *Service) Export(documentID, format string) ([]byte, error) {
 		return nil, fmt.Errorf("unsupported format: %s", format)
 	}
 
-	resp, err := s.drive.Files.Export(documentID, mimeType).Download()
+	resp, err := doRetry(func() (*http.Response, error) {
+		return s.drive.Files.Export(documentID, mimeType).Download()
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to export document: %w", err)
 	}
@@ -223,4 +231,121 @@ func getHeadingLevel(style string) int {
 	default:
 		return 0
 	}
+}
+
+// Structure returns a detailed structural analysis of the document.
+func (s *Service) Structure(documentID string) (*DocumentStructure, error) {
+	doc, err := s.Get(documentID)
+	if err != nil {
+		return nil, err
+	}
+	return analyzeStructure(doc), nil
+}
+
+// analyzeStructure walks the document body and extracts structural information.
+func analyzeStructure(doc *docs.Document) *DocumentStructure {
+	result := &DocumentStructure{
+		ID:    doc.DocumentId,
+		Title: doc.Title,
+	}
+
+	if doc.Body == nil {
+		return result
+	}
+
+	// Track list item counts
+	listCounts := map[string]int{}
+
+	var allText strings.Builder
+
+	for _, element := range doc.Body.Content {
+		if element.Paragraph != nil {
+			// Extract text for word count
+			for _, e := range element.Paragraph.Elements {
+				if e.TextRun != nil {
+					allText.WriteString(e.TextRun.Content)
+				}
+			}
+
+			// Check for heading
+			if element.Paragraph.ParagraphStyle != nil {
+				level := getHeadingLevel(element.Paragraph.ParagraphStyle.NamedStyleType)
+				if level > 0 {
+					var headingText strings.Builder
+					for _, e := range element.Paragraph.Elements {
+						if e.TextRun != nil {
+							headingText.WriteString(e.TextRun.Content)
+						}
+					}
+					result.Headings = append(result.Headings, HeadingInfo{
+						Text:       strings.TrimSpace(headingText.String()),
+						Level:      level,
+						StartIndex: element.StartIndex,
+					})
+				}
+			}
+
+			// Check for list
+			if element.Paragraph.Bullet != nil {
+				listID := element.Paragraph.Bullet.ListId
+				listCounts[listID]++
+			}
+		}
+
+		if element.Table != nil {
+			ti := TableInfo{
+				Rows:       int(element.Table.Rows),
+				Columns:    int(element.Table.Columns),
+				StartIndex: element.StartIndex,
+			}
+
+			// Extract first row text
+			if len(element.Table.TableRows) > 0 {
+				row := element.Table.TableRows[0]
+				for _, cell := range row.TableCells {
+					var cellText strings.Builder
+					for _, content := range cell.Content {
+						if content.Paragraph != nil {
+							for _, e := range content.Paragraph.Elements {
+								if e.TextRun != nil {
+									cellText.WriteString(e.TextRun.Content)
+								}
+							}
+						}
+					}
+					ti.FirstRow = append(ti.FirstRow, strings.TrimSpace(cellText.String()))
+				}
+			}
+
+			result.Tables = append(result.Tables, ti)
+		}
+	}
+
+	// Build list info
+	for listID, count := range listCounts {
+		li := ListInfo{
+			ListID:    listID,
+			ItemCount: count,
+		}
+		// Get glyph type from document lists metadata
+		if doc.Lists != nil {
+			if listDef, ok := doc.Lists[listID]; ok {
+				if listDef.ListProperties != nil && len(listDef.ListProperties.NestingLevels) > 0 {
+					li.GlyphType = listDef.ListProperties.NestingLevels[0].GlyphType
+				}
+			}
+		}
+		result.Lists = append(result.Lists, li)
+	}
+
+	// Word count
+	result.WordCount = countWords(allText.String())
+
+	return result
+}
+
+// countWords counts words in text, splitting on whitespace.
+func countWords(text string) int {
+	words := strings.Fields(text)
+	return len(words)
 }

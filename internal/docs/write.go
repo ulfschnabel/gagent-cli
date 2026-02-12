@@ -16,7 +16,9 @@ func (s *Service) Create(title string) (*CreateResult, error) {
 		Title: title,
 	}
 
-	created, err := s.docs.Documents.Create(doc).Do()
+	created, err := doRetry(func() (*docs.Document, error) {
+		return s.docs.Documents.Create(doc).Do()
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create document: %w", err)
 	}
@@ -72,9 +74,11 @@ func (s *Service) Append(documentID, text string) (*UpdateResult, error) {
 		},
 	}
 
-	_, err = s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
-		Requests: requests,
-	}).Do()
+	_, err = doRetry(func() (*docs.BatchUpdateDocumentResponse, error) {
+		return s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
+			Requests: requests,
+		}).Do()
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to append text: %w", err)
 	}
@@ -97,9 +101,11 @@ func (s *Service) Prepend(documentID, text string) (*UpdateResult, error) {
 		},
 	}
 
-	_, err := s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
-		Requests: requests,
-	}).Do()
+	_, err := doRetry(func() (*docs.BatchUpdateDocumentResponse, error) {
+		return s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
+			Requests: requests,
+		}).Do()
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepend text: %w", err)
 	}
@@ -123,9 +129,11 @@ func (s *Service) ReplaceText(documentID, find, replace string, matchCase bool) 
 		},
 	}
 
-	_, err := s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
-		Requests: requests,
-	}).Do()
+	_, err := doRetry(func() (*docs.BatchUpdateDocumentResponse, error) {
+		return s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
+			Requests: requests,
+		}).Do()
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to replace text: %w", err)
 	}
@@ -209,9 +217,11 @@ func (s *Service) UpdateSection(documentID, heading, content string) (*UpdateRes
 		},
 	})
 
-	_, err = s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
-		Requests: requests,
-	}).Do()
+	_, err = doRetry(func() (*docs.BatchUpdateDocumentResponse, error) {
+		return s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
+			Requests: requests,
+		}).Do()
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update section: %w", err)
 	}
@@ -228,9 +238,11 @@ func (s *Service) BatchUpdate(documentID, requestsJSON string) (*UpdateResult, e
 		return nil, fmt.Errorf("failed to parse requests JSON: %w", err)
 	}
 
-	_, err := s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
-		Requests: requests,
-	}).Do()
+	_, err := doRetry(func() (*docs.BatchUpdateDocumentResponse, error) {
+		return s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
+			Requests: requests,
+		}).Do()
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to batch update: %w", err)
 	}
@@ -322,9 +334,11 @@ func (s *Service) InsertList(documentID string, opts InsertListOptions) (*Update
 		})
 	}
 
-	_, err = s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
-		Requests: requests,
-	}).Do()
+	_, err = doRetry(func() (*docs.BatchUpdateDocumentResponse, error) {
+		return s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
+			Requests: requests,
+		}).Do()
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert list: %w", err)
 	}
@@ -429,9 +443,11 @@ func (s *Service) AppendFormatted(documentID, text string, opts TextStyleOptions
 		})
 	}
 
-	_, err = s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
-		Requests: requests,
-	}).Do()
+	_, err = doRetry(func() (*docs.BatchUpdateDocumentResponse, error) {
+		return s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
+			Requests: requests,
+		}).Do()
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to append formatted text: %w", err)
 	}
@@ -526,9 +542,11 @@ func (s *Service) FormatParagraph(documentID string, startIndex, endIndex int64,
 		},
 	}
 
-	_, err := s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
-		Requests: requests,
-	}).Do()
+	_, err := doRetry(func() (*docs.BatchUpdateDocumentResponse, error) {
+		return s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
+			Requests: requests,
+		}).Do()
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to format paragraph: %w", err)
 	}
@@ -576,9 +594,11 @@ func (s *Service) InsertTable(documentID string, opts TableOptions) (*UpdateResu
 		},
 	}
 
-	_, err = s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
-		Requests: requests,
-	}).Do()
+	_, err = doRetry(func() (*docs.BatchUpdateDocumentResponse, error) {
+		return s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
+			Requests: requests,
+		}).Do()
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert table: %w", err)
 	}
@@ -654,9 +674,11 @@ func (s *Service) InsertPageBreak(documentID string) (*UpdateResult, error) {
 		},
 	}
 
-	_, err = s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
-		Requests: requests,
-	}).Do()
+	_, err = doRetry(func() (*docs.BatchUpdateDocumentResponse, error) {
+		return s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
+			Requests: requests,
+		}).Do()
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to insert page break: %w", err)
 	}
@@ -694,24 +716,45 @@ func (s *Service) InsertTOC(documentID string) (*UpdateResult, error) {
 	}, nil
 }
 
-// populateTableData fills a table with data.
-func (s *Service) populateTableData(documentID string, doc *docs.Document, opts TableOptions) error {
-	// Find the table in the document
-	var table *docs.Table
+// findTableNear finds the table in the document closest to the given index.
+// This fixes the bug where the first table in the document was always used.
+func findTableNear(doc *docs.Document, nearIndex int64) *docs.Table {
+	if doc.Body == nil {
+		return nil
+	}
+
+	var bestTable *docs.Table
+	var bestDist int64 = -1
+
 	for _, element := range doc.Body.Content {
 		if element.Table != nil {
-			table = element.Table
-			break
+			dist := element.StartIndex - nearIndex
+			if dist < 0 {
+				dist = -dist
+			}
+			if bestDist < 0 || dist < bestDist {
+				bestDist = dist
+				bestTable = element.Table
+			}
 		}
 	}
 
-	if table == nil {
-		return fmt.Errorf("table not found in document")
-	}
+	return bestTable
+}
 
-	requests := []*docs.Request{}
+// cellInsert pairs an index with a request for sorting.
+type cellInsert struct {
+	index int64
+	req   *docs.Request
+}
 
-	// Insert headers
+// buildTablePopulateRequests builds cell insertion requests in reverse index order.
+// Reverse order prevents index shifting when inserting text into cells.
+// Also adds bold styling for header cells.
+func buildTablePopulateRequests(table *docs.Table, opts TableOptions) []*docs.Request {
+	var inserts []cellInsert
+
+	// Collect header cell inserts
 	if len(opts.Headers) > 0 && len(table.TableRows) > 0 {
 		row := table.TableRows[0]
 		for colIdx, header := range opts.Headers {
@@ -720,12 +763,13 @@ func (s *Service) populateTableData(documentID string, doc *docs.Document, opts 
 			}
 			cell := row.TableCells[colIdx]
 			if cell.Content != nil && len(cell.Content) > 0 {
-				startIndex := cell.Content[0].StartIndex
-				requests = append(requests, &docs.Request{
-					InsertText: &docs.InsertTextRequest{
-						Text: header,
-						Location: &docs.Location{
-							Index: startIndex,
+				idx := cell.Content[0].StartIndex
+				inserts = append(inserts, cellInsert{
+					index: idx,
+					req: &docs.Request{
+						InsertText: &docs.InsertTextRequest{
+							Text:     header,
+							Location: &docs.Location{Index: idx},
 						},
 					},
 				})
@@ -733,7 +777,7 @@ func (s *Service) populateTableData(documentID string, doc *docs.Document, opts 
 		}
 	}
 
-	// Insert data rows
+	// Collect data cell inserts
 	dataStartRow := 0
 	if len(opts.Headers) > 0 {
 		dataStartRow = 1
@@ -751,12 +795,13 @@ func (s *Service) populateTableData(documentID string, doc *docs.Document, opts 
 			}
 			cell := row.TableCells[colIdx]
 			if cell.Content != nil && len(cell.Content) > 0 {
-				startIndex := cell.Content[0].StartIndex
-				requests = append(requests, &docs.Request{
-					InsertText: &docs.InsertTextRequest{
-						Text: cellData,
-						Location: &docs.Location{
-							Index: startIndex,
+				idx := cell.Content[0].StartIndex
+				inserts = append(inserts, cellInsert{
+					index: idx,
+					req: &docs.Request{
+						InsertText: &docs.InsertTextRequest{
+							Text:     cellData,
+							Location: &docs.Location{Index: idx},
 						},
 					},
 				})
@@ -764,10 +809,64 @@ func (s *Service) populateTableData(documentID string, doc *docs.Document, opts 
 		}
 	}
 
+	// Sort in reverse index order (highest index first)
+	// This prevents index shifting when inserting text
+	for i := 0; i < len(inserts); i++ {
+		for j := i + 1; j < len(inserts); j++ {
+			if inserts[j].index > inserts[i].index {
+				inserts[i], inserts[j] = inserts[j], inserts[i]
+			}
+		}
+	}
+
+	var requests []*docs.Request
+	for _, ins := range inserts {
+		requests = append(requests, ins.req)
+	}
+
+	// Add bold styling for header cells (after text inserts, using same indices)
+	if len(opts.Headers) > 0 && len(table.TableRows) > 0 {
+		row := table.TableRows[0]
+		for colIdx, header := range opts.Headers {
+			if colIdx >= len(row.TableCells) {
+				break
+			}
+			cell := row.TableCells[colIdx]
+			if cell.Content != nil && len(cell.Content) > 0 {
+				idx := cell.Content[0].StartIndex
+				requests = append(requests, &docs.Request{
+					UpdateTextStyle: &docs.UpdateTextStyleRequest{
+						Range: &docs.Range{
+							StartIndex: idx,
+							EndIndex:   idx + int64(len(header)),
+						},
+						TextStyle: &docs.TextStyle{Bold: true},
+						Fields:    "bold",
+					},
+				})
+			}
+		}
+	}
+
+	return requests
+}
+
+// populateTableData fills a table with data.
+func (s *Service) populateTableData(documentID string, doc *docs.Document, opts TableOptions) error {
+	// Find the last table (most recently inserted) in the document
+	table := findTableNear(doc, int64(^uint(0)>>1))
+	if table == nil {
+		return fmt.Errorf("table not found in document")
+	}
+
+	requests := buildTablePopulateRequests(table, opts)
+
 	if len(requests) > 0 {
-		_, err := s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
-			Requests: requests,
-		}).Do()
+		_, err := doRetry(func() (*docs.BatchUpdateDocumentResponse, error) {
+			return s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
+				Requests: requests,
+			}).Do()
+		})
 		if err != nil {
 			return err
 		}
@@ -997,47 +1096,124 @@ type TemplateElement struct {
 	TableData [][]string        `json:"table_data,omitempty"`
 }
 
+// validateTemplate validates a document template before processing.
+func validateTemplate(tmpl *DocumentTemplate) error {
+	// Collect all elements to validate
+	var allElements []TemplateElement
+	for _, section := range tmpl.Sections {
+		if section.Heading == "" {
+			return fmt.Errorf("section heading cannot be empty")
+		}
+		allElements = append(allElements, section.Content...)
+	}
+	allElements = append(allElements, tmpl.Elements...)
+
+	for _, elem := range allElements {
+		switch elem.Type {
+		case "text", "pagebreak", "hr":
+			// valid
+		case "list":
+			if err := validateListType(elem.ListType); err != nil {
+				return err
+			}
+			if err := validateListItems(elem.Items); err != nil {
+				return err
+			}
+			if err := validateIndentLevel(elem.Indent); err != nil {
+				return err
+			}
+		case "table":
+			if elem.Rows < 1 || elem.Columns < 1 {
+				return fmt.Errorf("table rows and columns must be at least 1")
+			}
+		default:
+			return fmt.Errorf("unknown element type: %s", elem.Type)
+		}
+	}
+	return nil
+}
+
 // FormatFromTemplate applies a template to a document.
+// All non-table content is sent as a single atomic BatchUpdate.
+// Tables require a second pass to populate cell data (cell indices are unknown until the table exists).
 func (s *Service) FormatFromTemplate(documentID string, templateJSON string) (*UpdateResult, error) {
-	var template DocumentTemplate
-	if err := json.Unmarshal([]byte(templateJSON), &template); err != nil {
+	var tmpl DocumentTemplate
+	if err := json.Unmarshal([]byte(templateJSON), &tmpl); err != nil {
 		return nil, fmt.Errorf("failed to parse template JSON: %w", err)
 	}
 
+	if err := validateTemplate(&tmpl); err != nil {
+		return nil, fmt.Errorf("invalid template: %w", err)
+	}
+
+	// Get document end index
+	doc, err := s.Get(documentID)
+	if err != nil {
+		return nil, err
+	}
+
+	endIndex := int64(1)
+	if doc.Body != nil && len(doc.Body.Content) > 0 {
+		lastElement := doc.Body.Content[len(doc.Body.Content)-1]
+		endIndex = lastElement.EndIndex - 1
+	}
+
+	b := NewRequestBuilder(endIndex)
+
+	// Track tables that need a second pass for data population
+	type pendingTable struct {
+		opts TableOptions
+	}
+	var pendingTables []pendingTable
+
 	// Add title if specified
-	if template.Title != nil {
-		_, err := s.AppendFormatted(documentID, template.Title.Text+"\n\n", template.Title.Style)
-		if err != nil {
-			return nil, fmt.Errorf("failed to add title: %w", err)
-		}
+	if tmpl.Title != nil {
+		addTitleRequests(b, tmpl.Title)
 	}
 
 	// Add sections
-	for _, section := range template.Sections {
-		// Add heading
-		headingStyle := TextStyleOptions{
-			NamedStyle: section.Style,
-		}
-		if headingStyle.NamedStyle == "" {
-			headingStyle.NamedStyle = "heading2"
-		}
-		_, err := s.AppendFormatted(documentID, section.Heading+"\n", headingStyle)
-		if err != nil {
-			return nil, fmt.Errorf("failed to add section heading: %w", err)
-		}
-
-		// Add section content
+	for _, section := range tmpl.Sections {
+		addSectionRequests(b, section)
 		for _, element := range section.Content {
-			if err := s.addTemplateElement(documentID, element); err != nil {
-				return nil, fmt.Errorf("failed to add section element: %w", err)
+			if pt := addElementRequests(b, element); pt != nil {
+				pendingTables = append(pendingTables, pendingTable{opts: *pt})
 			}
 		}
 	}
 
 	// Add standalone elements
-	for _, element := range template.Elements {
-		if err := s.addTemplateElement(documentID, element); err != nil {
-			return nil, fmt.Errorf("failed to add element: %w", err)
+	for _, element := range tmpl.Elements {
+		if pt := addElementRequests(b, element); pt != nil {
+			pendingTables = append(pendingTables, pendingTable{opts: *pt})
+		}
+	}
+
+	// Send single atomic BatchUpdate for all non-table-data requests
+	requests := b.Build()
+	if len(requests) > 0 {
+		_, err = doRetry(func() (*docs.BatchUpdateDocumentResponse, error) {
+			return s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
+				Requests: requests,
+			}).Do()
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to apply template: %w", err)
+		}
+	}
+
+	// Second pass: populate table data (requires fresh doc to get cell indices)
+	if len(pendingTables) > 0 {
+		doc, err = s.Get(documentID)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, pt := range pendingTables {
+			if len(pt.opts.Headers) > 0 || len(pt.opts.Data) > 0 {
+				if err := s.populateTableData(documentID, doc, pt.opts); err != nil {
+					return nil, fmt.Errorf("template applied but failed to populate table: %w", err)
+				}
+			}
 		}
 	}
 
@@ -1046,39 +1222,197 @@ func (s *Service) FormatFromTemplate(documentID string, templateJSON string) (*U
 	}, nil
 }
 
-// addTemplateElement adds a template element to a document.
-func (s *Service) addTemplateElement(documentID string, element TemplateElement) error {
+// addTitleRequests adds title text and style to the builder.
+func addTitleRequests(b *RequestBuilder, title *TemplateText) {
+	start := b.Cursor()
+	b.InsertText(title.Text + "\n\n")
+	end := b.Cursor()
+
+	// Apply title named style
+	namedStyle := title.Style.NamedStyle
+	if namedStyle == "" {
+		namedStyle = "title"
+	}
+	styleType := mapNamedStyle(namedStyle)
+	if styleType != "" {
+		b.ApplyNamedStyle(start, end, styleType)
+	}
+
+	// Apply text formatting if specified
+	fields := buildTextStyleFields(title.Style)
+	if fields != "" {
+		styleDef := textStyleOptsToStyleDef(title.Style)
+		b.ApplyTextStyle(start, end, styleDef, fields)
+	}
+}
+
+// addSectionRequests adds a section heading to the builder.
+func addSectionRequests(b *RequestBuilder, section TemplateSection) {
+	start := b.Cursor()
+	b.InsertText(section.Heading + "\n")
+	end := b.Cursor()
+
+	style := section.Style
+	if style == "" {
+		style = "heading2"
+	}
+	styleType := mapNamedStyle(style)
+	if styleType != "" {
+		b.ApplyNamedStyle(start, end, styleType)
+	}
+}
+
+// addElementRequests adds an element to the builder.
+// Returns non-nil TableOptions if the element is a table needing data population.
+func addElementRequests(b *RequestBuilder, element TemplateElement) *TableOptions {
 	switch element.Type {
 	case "text":
-		_, err := s.AppendFormatted(documentID, element.Text+"\n", element.Style)
-		return err
+		start := b.Cursor()
+		b.InsertText(element.Text + "\n")
+		end := b.Cursor()
+
+		// Apply named style
+		if element.Style.NamedStyle != "" {
+			styleType := mapNamedStyle(element.Style.NamedStyle)
+			if styleType != "" {
+				b.ApplyNamedStyle(start, end, styleType)
+			}
+		}
+
+		// Apply text formatting
+		fields := buildTextStyleFields(element.Style)
+		if fields != "" {
+			styleDef := textStyleOptsToStyleDef(element.Style)
+			b.ApplyTextStyle(start, end, styleDef, fields)
+		}
 
 	case "list":
-		_, err := s.InsertList(documentID, InsertListOptions{
-			Type:   element.ListType,
-			Items:  element.Items,
-			Indent: element.Indent,
-		})
-		return err
+		glyphType := mapListGlyphType(element.ListType)
+		start := b.Cursor()
+		var listText strings.Builder
+		for _, item := range element.Items {
+			listText.WriteString(item)
+			listText.WriteString("\n")
+		}
+		b.InsertText(listText.String())
+		end := b.Cursor()
+		b.CreateList(start, end, glyphType)
 
 	case "table":
-		_, err := s.InsertTable(documentID, TableOptions{
-			Rows:    element.Rows,
-			Columns: element.Columns,
+		rows := element.Rows
+		if rows < 1 {
+			rows = 1
+		}
+		cols := element.Columns
+		if cols < 1 {
+			cols = 1
+		}
+		b.InsertTable(rows, cols)
+		return &TableOptions{
+			Rows:    rows,
+			Columns: cols,
 			Headers: element.Headers,
 			Data:    element.TableData,
-		})
-		return err
+		}
 
 	case "pagebreak":
-		_, err := s.InsertPageBreak(documentID)
-		return err
+		b.InsertPageBreak()
 
 	case "hr":
-		_, err := s.InsertHorizontalRule(documentID)
-		return err
-
-	default:
-		return fmt.Errorf("unknown element type: %s", element.Type)
+		b.InsertHorizontalRule()
 	}
+	return nil
+}
+
+// textStyleOptsToStyleDef converts TextStyleOptions to TextStyleDef for the builder.
+func textStyleOptsToStyleDef(opts TextStyleOptions) *TextStyleDef {
+	return &TextStyleDef{
+		Bold:          opts.Bold,
+		Italic:        opts.Italic,
+		Underline:     opts.Underline,
+		Strikethrough: opts.Strikethrough,
+		FontSize:      opts.FontSize,
+		FontFamily:    opts.FontFamily,
+		Color:         opts.Color,
+		BgColor:       opts.BgColor,
+	}
+}
+
+// FromMarkdown converts markdown content and appends it to a document.
+func (s *Service) FromMarkdown(documentID, markdown string) (*UpdateResult, error) {
+	doc, err := s.Get(documentID)
+	if err != nil {
+		return nil, err
+	}
+
+	endIndex := int64(1)
+	if doc.Body != nil && len(doc.Body.Content) > 0 {
+		lastElement := doc.Body.Content[len(doc.Body.Content)-1]
+		endIndex = lastElement.EndIndex - 1
+	}
+
+	mc := NewMarkdownConverter(endIndex)
+	requests, err := mc.Convert(markdown)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert markdown: %w", err)
+	}
+
+	if len(requests) == 0 {
+		return &UpdateResult{DocumentID: documentID}, nil
+	}
+
+	_, err = doRetry(func() (*docs.BatchUpdateDocumentResponse, error) {
+		return s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
+			Requests: requests,
+		}).Do()
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to apply markdown content: %w", err)
+	}
+
+	return &UpdateResult{DocumentID: documentID}, nil
+}
+
+// ReplaceFromMarkdown clears all body content and replaces it with markdown.
+func (s *Service) ReplaceFromMarkdown(documentID, markdown string) (*UpdateResult, error) {
+	// Clear existing body content
+	if err := s.clearBody(documentID); err != nil {
+		return nil, fmt.Errorf("failed to clear document: %w", err)
+	}
+
+	// Insert new markdown content at the start
+	return s.FromMarkdown(documentID, markdown)
+}
+
+// clearBody deletes all body content from a document, leaving it empty.
+func (s *Service) clearBody(documentID string) error {
+	doc, err := s.Get(documentID)
+	if err != nil {
+		return err
+	}
+
+	if doc.Body == nil || len(doc.Body.Content) == 0 {
+		return nil
+	}
+
+	endIndex := doc.Body.Content[len(doc.Body.Content)-1].EndIndex - 1
+	if endIndex <= 1 {
+		return nil // already empty
+	}
+
+	_, err = doRetry(func() (*docs.BatchUpdateDocumentResponse, error) {
+		return s.docs.Documents.BatchUpdate(documentID, &docs.BatchUpdateDocumentRequest{
+			Requests: []*docs.Request{
+				{
+					DeleteContentRange: &docs.DeleteContentRangeRequest{
+						Range: &docs.Range{
+							StartIndex: 1,
+							EndIndex:   endIndex,
+						},
+					},
+				},
+			},
+		}).Do()
+	})
+	return err
 }

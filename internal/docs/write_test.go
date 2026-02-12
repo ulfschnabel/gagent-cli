@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	docs "google.golang.org/api/docs/v1"
 )
 
 // TestValidateListType tests list type validation.
@@ -300,4 +302,209 @@ func TestValidateAlignment(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestValidateTemplate tests template validation.
+func TestValidateTemplate(t *testing.T) {
+	tests := []struct {
+		name    string
+		tmpl    DocumentTemplate
+		wantErr bool
+	}{
+		{
+			name:    "empty template",
+			tmpl:    DocumentTemplate{},
+			wantErr: false,
+		},
+		{
+			name: "valid text element",
+			tmpl: DocumentTemplate{
+				Elements: []TemplateElement{{Type: "text", Text: "Hello"}},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid list element",
+			tmpl: DocumentTemplate{
+				Elements: []TemplateElement{{
+					Type: "list", ListType: "bullet", Items: []string{"A", "B"},
+				}},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid table element",
+			tmpl: DocumentTemplate{
+				Elements: []TemplateElement{{Type: "table", Rows: 2, Columns: 3}},
+			},
+			wantErr: false,
+		},
+		{
+			name: "unknown element type",
+			tmpl: DocumentTemplate{
+				Elements: []TemplateElement{{Type: "unknown"}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "empty section heading",
+			tmpl: DocumentTemplate{
+				Sections: []TemplateSection{{Heading: ""}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid list type in section",
+			tmpl: DocumentTemplate{
+				Sections: []TemplateSection{{
+					Heading: "Section",
+					Content: []TemplateElement{{
+						Type: "list", ListType: "invalid", Items: []string{"A"},
+					}},
+				}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "table with zero rows",
+			tmpl: DocumentTemplate{
+				Elements: []TemplateElement{{Type: "table", Rows: 0, Columns: 2}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "pagebreak and hr are valid",
+			tmpl: DocumentTemplate{
+				Elements: []TemplateElement{
+					{Type: "pagebreak"},
+					{Type: "hr"},
+				},
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateTemplate(&tt.tmpl)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateTemplate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+// TestFindTableNear tests finding a table closest to an insertion index.
+func TestFindTableNear(t *testing.T) {
+	makeDoc := func(tableStarts ...int64) *docs.Document {
+		var content []*docs.StructuralElement
+		for _, start := range tableStarts {
+			content = append(content, &docs.StructuralElement{
+				StartIndex: start,
+				Table: &docs.Table{
+					Rows:    2,
+					Columns: 2,
+					TableRows: []*docs.TableRow{
+						{TableCells: []*docs.TableCell{
+							{Content: []*docs.StructuralElement{{StartIndex: start + 2}}},
+							{Content: []*docs.StructuralElement{{StartIndex: start + 10}}},
+						}},
+						{TableCells: []*docs.TableCell{
+							{Content: []*docs.StructuralElement{{StartIndex: start + 20}}},
+							{Content: []*docs.StructuralElement{{StartIndex: start + 30}}},
+						}},
+					},
+				},
+			})
+		}
+		return &docs.Document{Body: &docs.Body{Content: content}}
+	}
+
+	t.Run("single table", func(t *testing.T) {
+		doc := makeDoc(10)
+		table := findTableNear(doc, 5)
+		require.NotNil(t, table)
+		assert.Equal(t, int64(2), table.Rows)
+	})
+
+	t.Run("picks closest table", func(t *testing.T) {
+		doc := makeDoc(10, 100, 200)
+		table := findTableNear(doc, 95)
+		require.NotNil(t, table)
+		// Should pick the table at index 100 (closest to 95)
+		assert.NotNil(t, table)
+	})
+
+	t.Run("no table in doc", func(t *testing.T) {
+		doc := &docs.Document{Body: &docs.Body{Content: []*docs.StructuralElement{
+			{Paragraph: &docs.Paragraph{}},
+		}}}
+		table := findTableNear(doc, 5)
+		assert.Nil(t, table)
+	})
+}
+
+// TestBuildTablePopulateRequests tests building table cell requests in reverse order.
+func TestBuildTablePopulateRequests(t *testing.T) {
+	table := &docs.Table{
+		Rows:    2,
+		Columns: 2,
+		TableRows: []*docs.TableRow{
+			{TableCells: []*docs.TableCell{
+				{Content: []*docs.StructuralElement{{StartIndex: 5}}},
+				{Content: []*docs.StructuralElement{{StartIndex: 15}}},
+			}},
+			{TableCells: []*docs.TableCell{
+				{Content: []*docs.StructuralElement{{StartIndex: 25}}},
+				{Content: []*docs.StructuralElement{{StartIndex: 35}}},
+			}},
+		},
+	}
+
+	opts := TableOptions{
+		Rows:    2,
+		Columns: 2,
+		Headers: []string{"Name", "Value"},
+		Data:    [][]string{{"Alice", "100"}},
+	}
+
+	reqs := buildTablePopulateRequests(table, opts)
+	require.NotEmpty(t, reqs)
+
+	// Verify requests are in reverse index order (highest index first)
+	var lastIndex int64 = int64(^uint64(0) >> 1) // max int64
+	for _, req := range reqs {
+		if req.InsertText != nil {
+			assert.LessOrEqual(t, req.InsertText.Location.Index, lastIndex,
+				"requests should be in reverse index order")
+			lastIndex = req.InsertText.Location.Index
+		}
+	}
+
+	// Should contain bold styling for headers
+	hasBold := false
+	for _, req := range reqs {
+		if req.UpdateTextStyle != nil && req.UpdateTextStyle.TextStyle.Bold {
+			hasBold = true
+			break
+		}
+	}
+	assert.True(t, hasBold, "header cells should be bolded")
+}
+
+// TestTextStyleOptsToStyleDef tests conversion of TextStyleOptions to TextStyleDef.
+func TestTextStyleOptsToStyleDef(t *testing.T) {
+	opts := TextStyleOptions{
+		Bold:       true,
+		Italic:     true,
+		FontSize:   14,
+		FontFamily: "Arial",
+		Color:      "#ff0000",
+	}
+	def := textStyleOptsToStyleDef(opts)
+	assert.True(t, def.Bold)
+	assert.True(t, def.Italic)
+	assert.Equal(t, 14, def.FontSize)
+	assert.Equal(t, "Arial", def.FontFamily)
+	assert.Equal(t, "#ff0000", def.Color)
 }

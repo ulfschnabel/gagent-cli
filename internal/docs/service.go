@@ -75,3 +75,35 @@ type UpdateResult struct {
 	DocumentID string `json:"document_id"`
 	RevisionID string `json:"revision_id,omitempty"`
 }
+
+// DocumentStructure represents a detailed structural analysis of a document.
+type DocumentStructure struct {
+	ID        string       `json:"id"`
+	Title     string       `json:"title"`
+	WordCount int          `json:"word_count"`
+	Headings  []HeadingInfo `json:"headings,omitempty"`
+	Tables    []TableInfo  `json:"tables,omitempty"`
+	Lists     []ListInfo   `json:"lists,omitempty"`
+}
+
+// HeadingInfo describes a heading in the document.
+type HeadingInfo struct {
+	Text       string `json:"text"`
+	Level      int    `json:"level"`
+	StartIndex int64  `json:"start_index"`
+}
+
+// TableInfo describes a table in the document.
+type TableInfo struct {
+	Rows       int      `json:"rows"`
+	Columns    int      `json:"columns"`
+	StartIndex int64    `json:"start_index"`
+	FirstRow   []string `json:"first_row,omitempty"`
+}
+
+// ListInfo describes a list in the document.
+type ListInfo struct {
+	ListID    string `json:"list_id"`
+	GlyphType string `json:"glyph_type,omitempty"`
+	ItemCount int    `json:"item_count"`
+}

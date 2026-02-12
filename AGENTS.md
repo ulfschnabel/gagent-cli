@@ -209,18 +209,40 @@ gagent-cli contacts delete people/c123456
 
 ### Google Docs
 
+**CRITICAL: Use `docs from-markdown` to build documents.**
+Do NOT build documents piece by piece with `append`, `append-formatted`, `insert-list`, etc.
+Instead, compose your content as markdown and use `from-markdown` — it produces a clean,
+well-formatted Google Doc in a single atomic API call.
+
 ```bash
+# PREFERRED: Create a new doc from markdown (best for building documents)
+gagent-cli docs from-markdown --title "Meeting Notes" --text "# Meeting Notes
+
+## Agenda
+- Review Q1 results
+- Discuss roadmap
+
+## Action Items
+1. **Alice**: Update budget spreadsheet
+2. **Bob**: Schedule follow-up meeting
+
+## Notes
+The team agreed to move forward with *Option B*.
+See [details](https://example.com) for more info."
+
+# PREFERRED: Append markdown to existing doc
+gagent-cli docs from-markdown <doc-id> --text "## New Section
+
+Content with **bold** and *italic* formatting."
+
 # Read document content
 gagent-cli docs read <doc-id>
 
 # Get document outline/structure
 gagent-cli docs outline <doc-id>
 
-# Create new document
-gagent-cli docs create --title "Meeting Notes" --content "Initial content"
-
-# Append to document
-gagent-cli docs append <doc-id> --text "\n\nNew section content"
+# Analyze document structure (headings, tables, lists, word count)
+gagent-cli docs structure <doc-id>
 
 # Find and replace
 gagent-cli docs replace-text <doc-id> --find "old text" --replace "new text"
@@ -228,6 +250,17 @@ gagent-cli docs replace-text <doc-id> --find "old text" --replace "new text"
 # Update specific section
 gagent-cli docs update-section <doc-id> --heading "Budget" --content "Updated budget info"
 ```
+
+**When to use which command:**
+
+| Task | Command |
+|------|---------|
+| Build a new document with formatting | `docs from-markdown --title "Title" --text "# markdown"` |
+| Add formatted content to existing doc | `docs from-markdown <doc-id> --text "## markdown"` |
+| Read a document | `docs read <doc-id>` |
+| Small plain text append (no formatting) | `docs append <doc-id> --text "plain text"` |
+| Find/replace text | `docs replace-text <doc-id> --find X --replace Y` |
+| Update one section | `docs update-section <doc-id> --heading H --content C` |
 
 ### Google Sheets
 
@@ -544,20 +577,67 @@ gagent-cli contacts delete people/c123456
 gagent-cli contacts api update people/c789 --person-json '{...}' --etag "..."
 ```
 
-### Workflow: Document Collaboration
+### Workflow: Create a Well-Formatted Document
 
 ```bash
-# 1. Read current document
+# 1. Build the full document as markdown, then create it in one call
+gagent-cli docs from-markdown --title "Q1 Report" --text "# Q1 Report
+
+## Executive Summary
+Revenue grew **15%** quarter-over-quarter.
+
+## Key Metrics
+- Revenue: \$1.2M
+- New customers: 340
+- Churn rate: *2.1%*
+
+## Next Steps
+1. Expand to EU market
+2. Launch premium tier
+3. Hire 5 engineers
+
+---
+
+*Report generated on 2026-02-12*"
+```
+
+### Workflow: Iterate on a Document
+
+```bash
+# 1. Create the first version
+gagent-cli docs from-markdown --title "Q1 Report" --text "# Q1 Report
+
+## Summary
+Revenue grew **15%**."
+# Save the document_id from the response
+
+# 2. Read it back to verify
 gagent-cli docs read <doc-id>
 
-# 2. Make changes
-gagent-cli docs append <doc-id> --text "\n\n## New Section\nContent here"
+# 3. User wants changes → rewrite the whole doc with --replace
+gagent-cli docs from-markdown <doc-id> --replace --text "# Q1 Report (Revised)
 
-# 3. Or update specific sections
-gagent-cli docs update-section <doc-id> \
-  --heading "Budget" \
-  --content "Updated Q1 budget: $50k"
+## Executive Summary
+Revenue grew **15%** with strong growth in EMEA.
+
+## Detailed Metrics
+- Revenue: \$1.2M (+15%)
+- New customers: 340
+- Churn: *2.1%*"
+
+# 4. Read again, iterate as needed
+gagent-cli docs read <doc-id>
+
+# 5. Small addition without replacing everything
+gagent-cli docs from-markdown <doc-id> --text "## Appendix
+
+Additional **data** available upon request."
 ```
+
+**Key flags:**
+- `--title "Name"` → create a new doc
+- `--replace` → clear the doc and rewrite it (for iteration)
+- neither → append to existing content
 
 ### Workflow: Build Styled Slide Deck
 

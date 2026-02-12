@@ -123,6 +123,7 @@ func docsCmd() *cobra.Command {
 	cmd.AddCommand(docsReadCmd())
 	cmd.AddCommand(docsExportCmd())
 	cmd.AddCommand(docsOutlineCmd())
+	cmd.AddCommand(docsStructureCmd())
 	cmd.AddCommand(docsCreateCmd())
 	cmd.AddCommand(docsAppendCmd())
 	cmd.AddCommand(docsPrependCmd())
@@ -138,6 +139,7 @@ func docsCmd() *cobra.Command {
 	cmd.AddCommand(docsInsertHRCmd())
 	cmd.AddCommand(docsInsertTOCCmd())
 	cmd.AddCommand(docsFormatFromTemplateCmd())
+	cmd.AddCommand(docsFromMarkdownCmd())
 
 	// API commands
 	cmd.AddCommand(docsAPICmd())

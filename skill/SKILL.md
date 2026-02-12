@@ -104,10 +104,10 @@ For detailed Contacts commands, see [contacts.md](references/contacts.md).
 
 ### Docs, Sheets, Slides
 ```bash
-# Docs
+# Docs — use from-markdown to build well-formatted docs (PREFERRED)
+gagent-cli docs from-markdown --title "My Doc" --text "# Heading\n\n**Bold** and *italic*\n\n- List item"
+gagent-cli docs from-markdown <doc-id> --text "## New section with **formatting**"
 gagent-cli docs read <doc-id>
-gagent-cli docs create --title "Title" [--content "text"]
-gagent-cli docs append <doc-id> --text "content"
 
 # Sheets
 gagent-cli sheets read <spreadsheet-id> --sheet "Sheet1"

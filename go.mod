@@ -7,6 +7,7 @@ require (
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4
+	github.com/yuin/goldmark v1.7.16
 	golang.org/x/oauth2 v0.16.0
 	google.golang.org/api v0.156.0
 )
