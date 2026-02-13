@@ -45,11 +45,6 @@ archives:
       - README.md
       - AGENTS.md
 
-# Notarization commented out - will add in future release with correct syntax
-# notarize:
-#   macos:
-#     - profile_name: "gagent-cli-notarize"
-
 checksum:
   name_template: 'checksums.txt'
 
@@ -69,3 +64,21 @@ release:
   draft: false
   prerelease: auto
   name_template: "{{.ProjectName}} v{{.Version}}"
+
+# Homebrew tap
+brews:
+  - name: gagent-cli
+    repository:
+      owner: ulfschnabel
+      name: homebrew-tap
+      token: "{{ .Env.GITHUB_TOKEN }}"
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    homepage: https://github.com/ulfschnabel/gagent-cli
+    description: "Google Workspace automation CLI for AI agents"
+    license: MIT
+    install: |
+      bin.install "gagent-cli"
+    test: |
+      system "#{bin}/gagent-cli", "--version"
